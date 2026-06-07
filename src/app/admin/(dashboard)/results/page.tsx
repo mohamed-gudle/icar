@@ -1,5 +1,6 @@
 import { getDb } from "@/db/client";
 import { listResults, formatDuration } from "@/lib/results";
+import { sweepExpired } from "@/lib/finalize";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,9 @@ const STATUS_STYLE: Record<string, string> = {
 
 export default async function ResultsPage() {
   const db = await getDb();
+  // Finalize any abandoned/expired sessions on view, so analytics are correct
+  // even on the Hobby plan's once-daily cron cadence.
+  await sweepExpired(db).catch(() => {});
   const results = await listResults(db);
 
   return (
