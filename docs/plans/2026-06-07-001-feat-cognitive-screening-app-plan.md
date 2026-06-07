@@ -1,7 +1,7 @@
 ---
 title: "feat: Cognitive Screening Web App (ICAR) on Firebase + Cloud SQL"
 type: feat
-status: active
+status: completed
 created: 2026-06-07
 depth: deep
 tags: [firebase, nextjs, cloud-sql, postgres, assessment, security]
