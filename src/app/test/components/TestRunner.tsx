@@ -13,7 +13,8 @@ type Phase =
   | "done"
   | "invalid"
   | "expired"
-  | "completed";
+  | "completed"
+  | "unavailable";
 
 type DoneReason = "submitted" | "expired" | "blur";
 
@@ -68,6 +69,7 @@ export function TestRunner({ token }: { token: string }) {
       }
       if (res.status === 410) setPhase("expired");
       else if (res.status === 409) setPhase("completed");
+      else if (res.status === 503) setPhase("unavailable");
       else setPhase("invalid");
     })();
     return () => {
@@ -176,6 +178,14 @@ export function TestRunner({ token }: { token: string }) {
       <InvalidTokenScreen
         title="Already completed"
         message="This test has already been taken and cannot be retaken."
+      />
+    );
+  }
+  if (phase === "unavailable") {
+    return (
+      <InvalidTokenScreen
+        title="Test not ready"
+        message="This assessment isn't available right now. Please contact the recruiter who sent you the link."
       />
     );
   }

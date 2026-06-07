@@ -40,3 +40,7 @@ sa-key.json
 # service-account keys (never commit)
 sa*.json
 *serviceaccount*.json
+
+# all env files except the template
+.env*
+!.env.example
