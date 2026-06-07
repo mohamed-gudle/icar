@@ -5,6 +5,7 @@ import { defineConfig } from "drizzle-kit";
 // cloud-sql-connector. Never run migrations from request handlers / app boot.
 const url =
   process.env.LOCAL_DATABASE_URL ??
+  process.env.DATABASE_URL ??
   process.env.MIGRATION_DATABASE_URL ??
   "";
 

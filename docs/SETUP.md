@@ -1,5 +1,30 @@
 # Setup & Deployment Runbook
 
+> **Cheapest path (recommended): use Neon for Postgres instead of Cloud SQL.**
+> Cloud SQL bills ~$10/mo even when idle. Neon's free tier is $0 and the code
+> supports it with zero changes. See **§0** below — you can then skip §2 and §6,
+> and only use Firebase for Hosting/Auth/Storage (all free at this scale).
+
+## 0. Option: Neon (free serverless Postgres) instead of Cloud SQL
+
+1. Create a free project at https://neon.tech and a database named `screening`.
+2. Copy the connection string (includes `?sslmode=require`).
+3. Local dev / migrations / tests:
+   ```bash
+   export DATABASE_URL="postgresql://USER:PASS@ep-xxx.REGION.aws.neon.tech/screening?sslmode=require"
+   npm run db:migrate     # apply schema to Neon
+   npm test               # gated DB integration tests now run against Neon
+   ```
+4. For the deployed app, set the same `DATABASE_URL` as an App Hosting secret
+   (instead of the `CLOUD_SQL_INSTANCE`/`DB_IAM_USER` vars). I'll wire this in
+   `apphosting.yaml`. The app auto-enables SSL for non-localhost hosts.
+
+That's the entire database setup — **$0, no Cloud SQL instance, no IAM DB user,
+no VPC, no Auth Proxy.** Sections 2 and 6 below are only for the Cloud SQL route.
+
+---
+
+
 Provision GCP/Firebase, wire local dev, then deploy to App Hosting. Run the
 `gcloud`/`firebase` commands yourself (they touch your project + billing), then
 send me the values marked **→ send me** and I'll finalize config + deploy.

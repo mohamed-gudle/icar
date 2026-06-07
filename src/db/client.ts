@@ -29,14 +29,18 @@ export type ConnectionPlan =
 export function resolveConnectionPlan(
   env: Record<string, string | undefined> = process.env,
 ): ConnectionPlan {
-  if (env.LOCAL_DATABASE_URL) {
-    return { kind: "local", connectionString: env.LOCAL_DATABASE_URL };
+  // A plain Postgres URL covers local dev, CI, and serverless Postgres
+  // (Neon/Supabase/etc.). DATABASE_URL is the conventional name those
+  // providers hand you; LOCAL_DATABASE_URL is honored for backward compat.
+  const url = env.LOCAL_DATABASE_URL ?? env.DATABASE_URL;
+  if (url) {
+    return { kind: "local", connectionString: url };
   }
 
   const instance = env.CLOUD_SQL_INSTANCE;
   if (!instance) {
     throw new Error(
-      "No database configured: set LOCAL_DATABASE_URL or CLOUD_SQL_INSTANCE.",
+      "No database configured: set DATABASE_URL (e.g. Neon), LOCAL_DATABASE_URL, or CLOUD_SQL_INSTANCE.",
     );
   }
   const database = env.DB_NAME;
@@ -96,10 +100,16 @@ const POOL_TUNING = { connectionTimeoutMillis: 5_000, idleTimeoutMillis: 30_000 
 
 async function createPool(plan: ConnectionPlan): Promise<pg.Pool> {
   if (plan.kind === "local") {
+    // Serverless Postgres (Neon/Supabase) requires TLS; bare localhost does not.
+    const cs = plan.connectionString;
+    const needsSsl =
+      /sslmode=(require|verify-full|verify-ca)/.test(cs) ||
+      !/@(localhost|127\.0\.0\.1)[:/]/.test(cs);
     return new pg.Pool({
-      connectionString: plan.connectionString,
+      connectionString: cs,
       max: 5,
       ...POOL_TUNING,
+      ...(needsSsl ? { ssl: { rejectUnauthorized: false } } : {}),
     });
   }
 
