@@ -38,6 +38,40 @@ export INSTANCE=screening-db
 export DB=screening
 ```
 
+## Deploying on Vercel (no GCP billing, no Firebase Hosting)
+
+This is the fully-free path: **Vercel** (host) + **Neon** (DB) + **Firebase Auth**
+(Storage optional). `apphosting.yaml`, and sections 1/2/5/6/7/9 below, are only for
+the Firebase App Hosting route and can be ignored.
+
+1. Push this repo to GitHub and import it at https://vercel.com/new (framework
+   auto-detected as Next.js — no build config needed).
+2. Set **Environment Variables** in the Vercel project (Settings → Environment
+   Variables). Mark them for Production + Preview:
+
+   | Var | Value |
+   |-----|-------|
+   | `DATABASE_URL` | your Neon connection string (`...sslmode=require`) |
+   | `NEXT_PUBLIC_FIREBASE_CONFIG` | the web-app config JSON (one line) |
+   | `FIREBASE_PROJECT_ID` | `icar-b1d82` |
+   | `FIREBASE_SERVICE_ACCOUNT_JSON` | the **entire** service-account key JSON, pasted as one line (serverless can't read a key file) |
+   | `CANDIDATE_COOKIE_SECRET` | random 32-byte hex |
+   | `SWEEP_SECRET` | random 32-byte hex |
+   | `CRON_SECRET` | **same value as** `SWEEP_SECRET` (Vercel Cron sends it as the `Authorization: Bearer` header) |
+   | `FIREBASE_STORAGE_BUCKET` | only if you enable Storage later |
+
+3. Run migrations against Neon once from your machine (`DATABASE_URL=... npm run db:migrate`).
+4. The cron in `vercel.json` calls `/api/cron/sweep` every 5 min to finalize
+   abandoned tests — it authenticates via `CRON_SECRET` automatically.
+5. Grant yourself admin: `GOOGLE_APPLICATION_CREDENTIALS=./sa-key.json npm run set-admin -- you@email.com`
+   (run locally with the key file), then sign in at `/admin`.
+
+> Get the `FIREBASE_SERVICE_ACCOUNT_JSON` value: Firebase Console → Project
+> Settings → Service accounts → Generate new private key → open the file and
+> paste its full contents into the Vercel env var.
+
+---
+
 ## 1. Enable APIs
 
 ```bash
