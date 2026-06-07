@@ -1,7 +1,7 @@
 import { desc } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { questions } from "@/db/schema";
-import { ICAR_TYPES, ITEMS_PER_TYPE } from "@/lib/config";
+import { ICAR_TYPES, ITEMS_PER_TYPE, TOTAL_ITEMS } from "@/lib/config";
 import { QuestionForm } from "./QuestionForm";
 import { ToggleActive } from "./ToggleActive";
 
@@ -32,20 +32,34 @@ export default async function QuestionsPage() {
     <main>
       <h1 className="text-xl font-semibold">Question pool</h1>
 
+      {(() => {
+        const totalActive = ICAR_TYPES.reduce(
+          (n, t) => n + (activeByType[t] ?? 0),
+          0,
+        );
+        const ready = totalActive >= TOTAL_ITEMS;
+        return (
+          <p
+            className={`mt-2 text-sm ${ready ? "text-muted" : "text-red-600"}`}
+          >
+            {totalActive} active question{totalActive === 1 ? "" : "s"} —{" "}
+            {ready
+              ? `enough to run tests (${TOTAL_ITEMS} per test; a balanced ${ITEMS_PER_TYPE}×${ICAR_TYPES.length} mix is used when available).`
+              : `need ${TOTAL_ITEMS} total to run a test.`}
+          </p>
+        );
+      })()}
+
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         {ICAR_TYPES.map((t) => {
           const count = activeByType[t] ?? 0;
-          const enough = count >= ITEMS_PER_TYPE;
           return (
             <div
               key={t}
               className="rounded-card border border-line bg-card p-4 text-sm"
             >
               <div className="font-semibold">{TYPE_LABEL[t]}</div>
-              <div className={enough ? "text-muted" : "text-red-600"}>
-                {count} active{" "}
-                {enough ? "" : `(need ${ITEMS_PER_TYPE}+ to run tests)`}
-              </div>
+              <div className="text-muted">{count} active</div>
             </div>
           );
         })}
