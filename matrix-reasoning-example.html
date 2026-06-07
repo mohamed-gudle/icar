@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ICAR Matrix Reasoning — Example Item</title>
+<style>
+  :root {
+    --ink: #1a1d24;
+    --muted: #6b7280;
+    --line: #d7dbe2;
+    --bg: #f4f5f7;
+    --card: #ffffff;
+    --accent: #2f6df6;
+    --accent-soft: #e8f0ff;
+    --shape: #1a1d24;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    display: flex;
+    justify-content: center;
+    padding: 40px 20px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { width: 100%; max-width: 720px; }
+  .timer-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 12px; padding: 14px 18px; margin-bottom: 24px;
+  }
+  .timer-bar .q { font-size: 13px; color: var(--muted); font-weight: 600; letter-spacing: .02em; }
+  .timer-bar .clock { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 18px; color: var(--accent); }
+  .progress { height: 4px; background: var(--line); border-radius: 99px; margin-top: 12px; overflow: hidden; }
+  .progress > span { display: block; height: 100%; width: 25%; background: var(--accent); border-radius: 99px; }
+
+  .prompt { font-size: 17px; font-weight: 600; margin: 0 0 20px; }
+  .prompt small { display:block; font-weight: 400; color: var(--muted); font-size: 14px; margin-top: 4px; }
+
+  .matrix {
+    background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+    padding: 22px; display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 12px; margin-bottom: 28px;
+  }
+  .cell {
+    aspect-ratio: 1 / 1; border: 1px solid var(--line); border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; background: #fbfcfe;
+  }
+  .cell.missing {
+    border: 2px dashed var(--accent); background: var(--accent-soft);
+    color: var(--accent); font-size: 40px; font-weight: 300;
+  }
+
+  .options-label { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 12px; }
+  .options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .opt {
+    position: relative; aspect-ratio: 1 / 1; background: var(--card);
+    border: 1.5px solid var(--line); border-radius: 12px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: border-color .15s, box-shadow .15s, transform .05s;
+  }
+  .opt:hover { border-color: var(--accent); }
+  .opt:active { transform: scale(.98); }
+  .opt input { position: absolute; opacity: 0; }
+  .opt .key {
+    position: absolute; top: 8px; left: 10px; font-size: 12px;
+    font-weight: 700; color: var(--muted);
+  }
+  .opt:has(input:checked) { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .opt:has(input:checked) .key { color: var(--accent); }
+
+  svg { width: 70%; height: 70%; }
+  .reveal { margin-top: 28px; }
+  .reveal summary {
+    cursor: pointer; font-weight: 600; font-size: 14px; color: var(--accent);
+    list-style: none; user-select: none;
+  }
+  .reveal summary::-webkit-details-marker { display: none; }
+  .reveal[open] summary { margin-bottom: 12px; }
+  .explain {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 16px 18px; font-size: 14px; line-height: 1.6; color: #374151;
+  }
+  .explain b { color: var(--ink); }
+  .nav { margin-top: 28px; display:flex; justify-content: flex-end; }
+  .nav button {
+    background: var(--accent); color:#fff; border:0; border-radius: 10px;
+    padding: 12px 24px; font-weight: 600; font-size: 15px; cursor: pointer;
+  }
+  .nav .hint { align-self:center; margin-right:auto; color: var(--muted); font-size:13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="timer-bar">
+    <div>
+      <div class="q">QUESTION 3 OF 12 · MATRIX REASONING</div>
+      <div class="progress"><span></span></div>
+    </div>
+    <div class="clock">⏱ 09:41</div>
+  </div>
+
+  <p class="prompt">
+    Which shape completes the grid?
+    <small>The bottom-right cell is missing. Pick the option that follows the pattern.</small>
+  </p>
+
+  <!-- 3×3 MATRIX -->
+  <div class="matrix" id="matrix"></div>
+
+  <div class="options-label">Choose one</div>
+  <div class="options" id="options"></div>
+
+  <details class="reveal">
+    <summary>▸ Show the rule &amp; correct answer (for review)</summary>
+    <div class="explain">
+      <p><b>Two independent rules:</b></p>
+      <p>① <b>Across each row →</b> the count of shapes increases: 1, 2, 3.<br>
+         ② <b>Down each column ↓</b> the shape changes: circle → square → triangle.</p>
+      <p>The missing cell is row 3, column 3 → a <b>triangle</b> shape, <b>×3</b>.<br>
+         <b>Correct answer: Option B.</b> The others are distractors (wrong count or wrong shape).</p>
+    </div>
+  </details>
+
+  <div class="nav">
+    <span class="hint">No going back — answer locks when you continue.</span>
+    <button>Next →</button>
+  </div>
+
+</div>
+
+<script>
+  // --- SVG shape builders (language-agnostic geometry) ---
+  function shape(kind, count) {
+    const positions = {
+      1: [[50,50]],
+      2: [[34,50],[66,50]],
+      3: [[28,50],[50,50],[72,50]],
+      4: [[35,35],[65,35],[35,65],[65,65]],
+    }[count] || [[50,50]];
+    const r = count >= 3 ? 9 : 12;
+    const el = positions.map(([cx,cy]) => {
+      if (kind === 'circle') return `<circle cx="${cx}" cy="${cy}" r="${r}"/>`;
+      if (kind === 'square') return `<rect x="${cx-r}" y="${cy-r}" width="${2*r}" height="${2*r}" rx="2"/>`;
+      if (kind === 'triangle') return `<polygon points="${cx},${cy-r} ${cx+r},${cy+r} ${cx-r},${cy+r}"/>`;
+    }).join('');
+    return `<svg viewBox="0 0 100 100" fill="var(--shape)">${el}</svg>`;
+  }
+
+  // --- Build the 3×3 grid ---
+  const grid = [
+    ['circle',1],   ['circle',2],   ['circle',3],
+    ['square',1],   ['square',2],   ['square',3],
+    ['triangle',1], ['triangle',2], null   // missing
+  ];
+  document.getElementById('matrix').innerHTML = grid.map(c =>
+    c ? `<div class="cell">${shape(c[0], c[1])}</div>`
+      : `<div class="cell missing">?</div>`
+  ).join('');
+
+  // --- Build the answer options (B is correct: triangle ×3) ---
+  const opts = [
+    ['A', shape('triangle', 2)],   // wrong count
+    ['B', shape('triangle', 3)],   // ✓ correct
+    ['C', shape('square', 3)],     // wrong shape
+    ['D', shape('circle', 3)],     // wrong shape
+    ['E', shape('triangle', 4)],   // wrong count
+    ['F', shape('square', 2)],     // wrong both
+  ];
+  document.getElementById('options').innerHTML = opts.map(([k, svg]) =>
+    `<label class="opt"><span class="key">${k}</span>
+       <input type="radio" name="answer" value="${k}">${svg}</label>`
+  ).join('');
+</script>
+</body>
+</html>
