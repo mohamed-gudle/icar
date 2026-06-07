@@ -32,7 +32,7 @@ export function resolveConnectionPlan(
   // A plain Postgres URL covers local dev, CI, and serverless Postgres
   // (Neon/Supabase/etc.). DATABASE_URL is the conventional name those
   // providers hand you; LOCAL_DATABASE_URL is honored for backward compat.
-  const url = env.LOCAL_DATABASE_URL ?? env.DATABASE_URL;
+  const url = env.DATABASE_URL ?? env.LOCAL_DATABASE_URL;
   if (url) {
     return { kind: "local", connectionString: url };
   }
