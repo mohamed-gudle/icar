@@ -40,6 +40,9 @@ env:
   # Shared secret for the Cloud Scheduler -> /api/cron/sweep call.
   - variable: SWEEP_SECRET
     secret: sweepSecret
+  # Dedicated HMAC secret for candidate in-test session cookies.
+  - variable: CANDIDATE_COOKIE_SECRET
+    secret: candidateCookieSecret
 
   # Example: password auth fallback instead of IAM (pulled from Secret Manager).
   # - variable: DB_PASSWORD

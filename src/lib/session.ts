@@ -1,5 +1,4 @@
 import { eq, inArray } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import {
   accessTokens,
   questions,
@@ -8,12 +7,14 @@ import {
   type Question,
   type QuestionOption,
 } from "@/db/schema";
-import type * as schema from "@/db/schema";
+import type { Db, DbExecutor } from "@/db/client";
 import { consumeToken, hashToken } from "./tokens";
-import { selectQuestionOrder, type PoolItem } from "./question-select";
+import {
+  selectQuestionOrder,
+  InsufficientPoolError,
+  type PoolItem,
+} from "./question-select";
 import { TEST_DURATION_MS, SUBMIT_GRACE_MS, type IcarType } from "./config";
-
-type Db = NodePgDatabase<typeof schema>;
 
 /** Candidate-safe question shape — the correct answer key is never included. */
 export type ClientQuestion = {
@@ -54,10 +55,11 @@ export type InitResult =
   | { kind: "ok"; sessionId: string; state: SessionState }
   | { kind: "invalid" }
   | { kind: "expired" }
-  | { kind: "completed" };
+  | { kind: "completed" }
+  | { kind: "unavailable" }; // active question pool too small to build a test
 
 async function loadQuestionsInOrder(
-  db: Db,
+  db: DbExecutor,
   ids: string[],
 ): Promise<Question[]> {
   if (ids.length === 0) return [];
@@ -70,7 +72,7 @@ async function loadQuestionsInOrder(
 }
 
 async function buildState(
-  db: Db,
+  db: DbExecutor,
   session: typeof testSessions.$inferSelect,
 ): Promise<SessionState> {
   const order = session.questionOrder;
@@ -117,16 +119,29 @@ export async function initSession(db: Db, rawToken: string): Promise<InitResult>
   if (tok.status === "unused") {
     if (tok.expiresAt.getTime() <= Date.now()) return { kind: "expired" };
 
-    // Atomic consume; only the winning request creates the session.
-    const consumed = await consumeToken(db, rawToken);
-    if (consumed) {
-      const pool = await db
-        .select({ id: questions.id, type: questions.type })
-        .from(questions)
-        .where(eq(questions.active, true));
-      const order = selectQuestionOrder(pool as PoolItem[]);
+    // Build the question order BEFORE consuming the token. If the active pool
+    // is too small this throws here while the token is still unused, so the
+    // candidate can retry once an admin fixes the pool (no burned token).
+    const pool = await db
+      .select({ id: questions.id, type: questions.type })
+      .from(questions)
+      .where(eq(questions.active, true));
+    let order: string[];
+    try {
+      order = selectQuestionOrder(pool as PoolItem[]);
+    } catch (err) {
+      if (err instanceof InsufficientPoolError) return { kind: "unavailable" };
+      throw err;
+    }
 
-      const [session] = await db
+    // Consume + create session + bind in ONE transaction so a failure can
+    // never leave a consumed token with no session (which would lock the
+    // candidate out permanently). The conditional consume stays atomic.
+    let created: { sessionId: string; state: SessionState } | null = null;
+    await db.transaction(async (tx) => {
+      const consumed = await consumeToken(tx, rawToken);
+      if (!consumed) return; // lost the race; commit no-op, resume below
+      const [session] = await tx
         .insert(testSessions)
         .values({
           tokenId: tok.id,
@@ -136,12 +151,15 @@ export async function initSession(db: Db, rawToken: string): Promise<InitResult>
           questionOrder: order,
         })
         .returning();
-      await db
+      await tx
         .update(accessTokens)
         .set({ testSessionId: session.id })
         .where(eq(accessTokens.id, tok.id));
+      created = { sessionId: session.id, state: await buildState(tx, session) };
+    });
 
-      return { kind: "ok", sessionId: session.id, state: await buildState(db, session) };
+    if (created) {
+      return { kind: "ok", ...(created as { sessionId: string; state: SessionState }) };
     }
     // Lost the race; fall through to resume the now-consumed token.
   }

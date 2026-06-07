@@ -29,7 +29,8 @@ export async function GET() {
   try {
     await requireAdmin();
   } catch (res) {
-    return res as Response;
+    if (res instanceof Response) return res;
+    throw res;
   }
   const db = await getDb();
   const rows = await db
@@ -45,7 +46,8 @@ export async function POST(req: NextRequest) {
   try {
     await requireAdmin();
   } catch (res) {
-    return res as Response;
+    if (res instanceof Response) return res;
+    throw res;
   }
 
   const parsed = CreateSchema.safeParse(await req.json().catch(() => null));

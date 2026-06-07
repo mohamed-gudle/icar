@@ -9,7 +9,8 @@ export async function POST(req: NextRequest) {
   try {
     await requireAdmin();
   } catch (res) {
-    return res as Response;
+    if (res instanceof Response) return res;
+    throw res;
   }
 
   const form = await req.formData().catch(() => null);

@@ -25,6 +25,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "expired_token" }, { status: 410 });
     case "completed":
       return NextResponse.json({ error: "already_completed" }, { status: 409 });
+    case "unavailable":
+      return NextResponse.json({ error: "unavailable" }, { status: 503 });
     case "ok": {
       const res = NextResponse.json({ state: result.state });
       res.cookies.set(CANDIDATE_COOKIE, signSession(result.sessionId), {

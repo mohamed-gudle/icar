@@ -32,3 +32,6 @@ firebase-debug.log
 .DS_Store
 *.log
 .claude/worktrees/
+
+# typescript build info
+tsconfig.tsbuildinfo

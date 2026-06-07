@@ -8,6 +8,9 @@ import { TEST_DURATION_MS, SUBMIT_GRACE_MS } from "./config";
 
 type Db = NodePgDatabase<typeof schema>;
 
+/** Max sessions finalized per sweep invocation; remainder rolls to the next run. */
+const SWEEP_BATCH_LIMIT = 200;
+
 export type FinalizeResult = {
   status: "submitted" | "expired";
   rawScore: number;
@@ -120,30 +123,39 @@ export async function sweepExpired(
         isNotNull(testSessions.startedAt),
         lt(testSessions.startedAt, cutoff),
       ),
-    );
+    )
+    // Bound the batch so a large backlog cannot exceed the scheduler timeout;
+    // the CAS guard makes repeated runs safe, so the remainder is swept next tick.
+    .limit(SWEEP_BATCH_LIMIT);
 
   let count = 0;
   for (const session of stale) {
-    const raw = await scoreSession(db, session.id, session.questionOrder);
-    const deadline = session.startedAt
-      ? new Date(session.startedAt.getTime() + TEST_DURATION_MS)
-      : now;
-    const res = await db
-      .update(testSessions)
-      .set({
-        status: "expired",
-        rawScore: raw,
-        totalTimeMs: TEST_DURATION_MS, // used the full window
-        submittedAt: deadline,
-      })
-      .where(
-        and(
-          eq(testSessions.id, session.id),
-          eq(testSessions.status, "in_progress"),
-        ),
-      )
-      .returning({ id: testSessions.id });
-    if (res.length) count++;
+    try {
+      const raw = await scoreSession(db, session.id, session.questionOrder);
+      const deadline = session.startedAt
+        ? new Date(session.startedAt.getTime() + TEST_DURATION_MS)
+        : now;
+      const res = await db
+        .update(testSessions)
+        .set({
+          status: "expired",
+          rawScore: raw,
+          totalTimeMs: TEST_DURATION_MS, // used the full window
+          overTime: true, // never submitted within the window
+          submittedAt: deadline,
+        })
+        .where(
+          and(
+            eq(testSessions.id, session.id),
+            eq(testSessions.status, "in_progress"),
+          ),
+        )
+        .returning({ id: testSessions.id });
+      if (res.length) count++;
+    } catch {
+      // Isolate per-session failures so one bad row does not abort the sweep.
+      continue;
+    }
   }
   return count;
 }

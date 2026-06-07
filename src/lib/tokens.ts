@@ -1,10 +1,7 @@
 import { randomBytes, createHash } from "node:crypto";
 import { and, eq, gt, sql } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { accessTokens } from "@/db/schema";
-import type * as schema from "@/db/schema";
-
-type Db = NodePgDatabase<typeof schema>;
+import type { Db, DbExecutor } from "@/db/client";
 
 /** 32 bytes = 256 bits of CSPRNG entropy, url-safe encoded. */
 export function generateToken(): { raw: string; hash: string } {
@@ -64,7 +61,7 @@ export type ConsumedToken = {
  * transaction; the flip itself is atomic regardless.
  */
 export async function consumeToken(
-  db: Db,
+  db: DbExecutor,
   rawToken: string,
 ): Promise<ConsumedToken | null> {
   const hash = hashToken(rawToken);

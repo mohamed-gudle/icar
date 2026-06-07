@@ -9,8 +9,11 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 export const CANDIDATE_COOKIE = "test_session";
 
 function secret(env: Record<string, string | undefined> = process.env): string {
-  const s = env.CANDIDATE_COOKIE_SECRET ?? env.SWEEP_SECRET;
-  if (!s) throw new Error("CANDIDATE_COOKIE_SECRET (or SWEEP_SECRET) must be set");
+  // Dedicated secret — deliberately NOT shared with SWEEP_SECRET. Sharing would
+  // let disclosure of the cron secret forge candidate cookies for any session,
+  // and would couple their rotation.
+  const s = env.CANDIDATE_COOKIE_SECRET;
+  if (!s) throw new Error("CANDIDATE_COOKIE_SECRET must be set");
   return s;
 }
 

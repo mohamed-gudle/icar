@@ -129,9 +129,15 @@ export function TestRunner({ token }: { token: string }) {
         await submit("submitted");
         return;
       }
-      const st = await fetch("/api/session/state").then((r) => r.json());
-      setState(st.state as SessionState);
-      setSelected(null);
+      const st = await fetch("/api/session/state")
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null);
+      if (st?.state) {
+        setState(st.state as SessionState);
+        setSelected(null);
+      }
+      // If the refetch failed, keep the current question; the user can retry
+      // Next, and the server timer/sweep remain authoritative regardless.
     } finally {
       setBusy(false);
     }

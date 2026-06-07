@@ -10,7 +10,8 @@ export async function GET() {
   try {
     await requireAdmin();
   } catch (res) {
-    return res as Response;
+    if (res instanceof Response) return res;
+    throw res;
   }
   const db = await getDb();
   const results = await listResults(db);
