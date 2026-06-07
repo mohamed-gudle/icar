@@ -36,3 +36,7 @@ firebase-debug.log
 # typescript build info
 tsconfig.tsbuildinfo
 sa-key.json
+
+# service-account keys (never commit)
+sa*.json
+*serviceaccount*.json
