@@ -1,0 +1,46 @@
+# Firebase App Hosting configuration.
+# Docs: https://firebase.google.com/docs/app-hosting/configure
+runConfig:
+  cpu: 1
+  memoryMiB: 512
+  # Keep one warm instance so the Cloud SQL connection pool is established and
+  # the admin dashboard avoids cold-start DB latency.
+  minInstances: 1
+  maxInstances: 10
+  concurrency: 80
+  # Private IP egress to reach Cloud SQL over the VPC (recommended).
+  # Replace with your VPC network id before deploying.
+  # vpcAccess:
+  #   egress: PRIVATE_RANGES_ONLY
+  #   networkInterfaces:
+  #     - network: my-network-id
+
+env:
+  # Cloud SQL instance connection name: PROJECT:REGION:INSTANCE
+  - variable: CLOUD_SQL_INSTANCE
+    value: "REPLACE_ME:REGION:INSTANCE"
+    availability: [RUNTIME]
+  - variable: DB_NAME
+    value: "screening"
+    availability: [RUNTIME]
+  # IAM database user = the runtime service account email WITHOUT the
+  # .gserviceaccount.com suffix. With IAM auth no password is needed.
+  - variable: DB_IAM_USER
+    value: "REPLACE_ME@PROJECT.iam"
+    availability: [RUNTIME]
+  - variable: DB_IP_TYPE
+    value: "PRIVATE"
+    availability: [RUNTIME]
+  - variable: FIREBASE_STORAGE_BUCKET
+    value: "REPLACE_ME.firebasestorage.app"
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_CONFIG
+    value: '{"apiKey":"REPLACE_ME","authDomain":"REPLACE_ME.firebaseapp.com","projectId":"REPLACE_ME","storageBucket":"REPLACE_ME.firebasestorage.app","appId":"REPLACE_ME"}'
+    availability: [BUILD, RUNTIME]
+  # Shared secret for the Cloud Scheduler -> /api/cron/sweep call.
+  - variable: SWEEP_SECRET
+    secret: sweepSecret
+
+  # Example: password auth fallback instead of IAM (pulled from Secret Manager).
+  # - variable: DB_PASSWORD
+  #   secret: dbPassword

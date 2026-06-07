@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ink: #1a1d24;
+  --muted: #6b7280;
+  --line: #d7dbe2;
+  --bg: #f4f5f7;
+  --card: #ffffff;
+  --accent: #2f6df6;
+  --accent-soft: #e8f0ff;
+  --shape: #1a1d24;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tabular numerals for the countdown clock so digits don't jitter. */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}

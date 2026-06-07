@@ -1,0 +1,12 @@
+rules_version = '2';
+
+// All assets are mediated by the Next.js server (uploads via the Admin SDK,
+// reads via server-minted signed URLs). Deny all direct client access so a
+// long-lived download URL can never bypass server authorization.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
